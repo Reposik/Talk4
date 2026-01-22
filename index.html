@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>T4 MESSENGER | GIST CLOUD</title>
+    <link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&display=swap" rel="stylesheet">
+    <style>
+        :root { --red: #ff0000; --black: #000; --grey: #0a0a0a; --active: #151515; }
+        * { box-sizing: border-box; }
+        
+        body { 
+            background: var(--black); color: white; 
+            font-family: 'Dela Gothic One', cursive; margin: 0; 
+            height: 100vh; display: flex; flex-direction: column; 
+        }
+
+        /* Окно входа */
+        #login-screen {
+            position: fixed; inset: 0; background: var(--black);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 1000; border: 4px solid var(--red);
+        }
+
+        .t4-input {
+            background: var(--grey); border: 2px solid var(--red);
+            color: white; padding: 15px; width: 350px;
+            margin: 10px 0; font-family: inherit; text-align: center;
+        }
+
+        .t4-btn {
+            background: var(--red); color: white; border: none;
+            padding: 15px 40px; cursor: pointer; font-family: inherit;
+            transition: 0.3s; margin-top: 10px;
+        }
+        .t4-btn:hover { background: white; color: red; transform: scale(1.05); }
+
+        /* Основной интерфейс */
+        .wrapper { display: flex; flex: 1; overflow: hidden; }
+        
+        .sidebar { 
+            width: 320px; background: var(--grey); 
+            border-right: 2px solid var(--red); display: flex; flex-direction: column; 
+        }
+
+        .chat-view { flex: 1; display: flex; flex-direction: column; background: var(--black); }
+
+        .messages-container { 
+            flex: 1; padding: 25px; overflow-y: auto; 
+            display: flex; flex-direction: column; gap: 15px;
+            background: radial-gradient(circle at center, #0a0000 0%, #000 100%);
+        }
+
+        .message { 
+            max-width: 75%; padding: 12px 20px; border-radius: 4px; 
+            font-size: 0.9rem; line-height: 1.4; position: relative;
+        }
+        .message.me { align-self: flex-end; background: var(--red); border-bottom-right-radius: 0; }
+        .message.other { align-self: flex-start; background: var(--active); border: 1px solid var(--red); border-bottom-left-radius: 0; }
+
+        .user-label { font-size: 0.6rem; color: #aaa; margin-bottom: 4px; display: block; }
+
+        .input-area { 
+            padding: 25px; background: var(--grey); 
+            border-top: 2px solid var(--red); display: flex; gap: 15px; 
+        }
+
+        #m-input { flex: 1; background: var(--black); border: 1px solid var(--red); color: white; padding: 15px; font-family: inherit; }
+
+        /* Индикатор загрузки */
+        #loader { font-size: 0.7rem; color: var(--red); padding: 10px; text-align: center; }
+    </style>
+</head>
+<body>
+
+<div id="login-screen">
+    <h1 style="font-size: 3rem; color: var(--red); margin: 0;">T4 SYSTEM</h1>
+    <p style="letter-spacing: 2px;">CLOUD TERMINAL v1.0</p>
+    <input type="password" id="gist-key" class="t4-input" placeholder="GIST_KEY">
+    <input type="text" id="gist-id" class="t4-input" placeholder="GIST ID">
+    <button class="t4-btn" onclick="initT4()">ACCESS SYSTEM</button>
+</div>
+
+<div class="wrapper">
+    <div class="sidebar">
+        <div style="padding: 25px; border-bottom: 2px solid var(--red); font-size: 1.2rem; background: var(--red); color: black;">
+            T4_MESSENGER
+        </div>
+        <div id="loader">STATUS: SYNCING...</div>
+        <div id="online-list" style="padding: 20px; font-size: 0.8rem; opacity: 0.5;">[ SESSION ACTIVE ]</div>
+    </div>
+
+    <div class="chat-view">
+        <div class="messages-container" id="chat">
+            </div>
+        <div class="input-area">
+            <input type="text" id="m-input" placeholder="WRITE COMMAND..." onkeydown="if(event.key==='Enter') sendToGist()">
+            <button class="t4-btn" style="margin:0;" onclick="sendToGist()">SEND</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let TOKEN = "";
+    let GIST_ID = "";
+    const USERNAME = "user_" + Math.random().toString(36).substr(2, 4).toUpperCase();
+
+    async function initT4() {
+        TOKEN = document.getElementById('gist-key').value;
+        GIST_ID = document.getElementById('gist-id').value;
+
+        if(!TOKEN || !GIST_ID) return alert("ACCESS DENIED: NO KEYS");
+
+        document.getElementById('login-screen').style.display = 'none';
+        
+        // Запуск цикла обновления
+        sync();
+        setInterval(sync, 3500);
+    }
+
+    async function sync() {
+        try {
+            const response = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+                headers: { 'Authorization': `token ${TOKEN}` }
+            });
+            const data = await response.json();
+            const rawContent = data.files["gist.json"].content;
+            const history = JSON.parse(rawContent);
+            renderMessages(history);
+            document.getElementById('loader').innerText = "STATUS: ENCRYPTED SYNC OK";
+        } catch (err) {
+            document.getElementById('loader').innerText = "STATUS: SYNC ERROR";
+            console.error(err);
+        }
+    }
+
+    function renderMessages(history) {
+        const chat = document.getElementById('chat');
+        chat.innerHTML = "";
+        history.forEach(msg => {
+            const div = document.createElement('div');
+            const isMe = msg.u === USERNAME;
+            div.className = `message ${isMe ? 'me' : 'other'}`;
+            div.innerHTML = `<span class="user-label">${msg.u}</span>${msg.t}`;
+            chat.appendChild(div);
+        });
+        chat.scrollTop = chat.scrollHeight;
+    }
+
+    async function sendToGist() {
+        const input = document.getElementById('m-input');
+        const text = input.value.trim();
+        if(!text) return;
+
+        try {
+            // 1. Получаем актуальный файл
+            const res = await fetch(`https://api.github.com/gists/${57bd48a703a2dccdb1d0577df466a171}`, {
+                headers: { 'Authorization': `token ${TOKEN}` }
+            });
+            const data = await res.json();
+            let history = JSON.parse(data.files["gist.json"].content);
+
+            // 2. Добавляем новое
+            history.push({ u: USERNAME, t: text, ts: Date.now() });
+
+            // 3. Отправляем обратно
+            await fetch(`https://api.github.com/gists/${57bd48a703a2dccdb1d0577df466a171}`, {
+                method: 'PATCH',
+                headers: { 'Authorization': `token ${TOKEN}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    files: { "gist.json": { content: JSON.stringify(history) } }
+                })
+            });
+
+            input.value = "";
+            sync(); // Мгновенный рендер после отправки
+        } catch (e) {
+            alert("UPLOAD FAILED");
+        }
+    }
+</script>
+
+</body>
+</html>
