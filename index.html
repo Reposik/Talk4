@@ -4,140 +4,156 @@
     <meta charset="UTF-8">
     <title>T4 MESSENGER</title>
     <link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
-        :root { --red: #ff0000; --black: #000; --white: #fff; }
+        :root { --red: #ff0000; --black: #000; --grey: #111; --white: #fff; }
         * { box-sizing: border-box; outline: none; }
-        body { background: var(--black); color: var(--white); font-family: 'Dela Gothic One', cursive; margin: 0; }
+        body { background: var(--black); color: var(--white); font-family: 'Dela Gothic One', cursive; margin: 0; height: 100vh; overflow: hidden; }
 
-        /* AUTH SCREEN */
-        #auth-page {
-            position: fixed; inset: 0; background: var(--black); z-index: 1000;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-        }
-        .auth-form { width: 320px; display: flex; flex-direction: column; gap: 15px; }
-        .t4-input { 
-            background: transparent; border: 2px solid var(--white); border-radius: 50px; 
-            padding: 12px 20px; color: white; font-family: inherit;
-        }
-        .t4-submit { 
-            background: var(--red); border: none; padding: 15px; border-radius: 50px; 
-            color: white; font-family: inherit; cursor: pointer; font-size: 1.1rem;
-        }
+        /* --- AUTH PAGE --- */
+        #auth-page { position: fixed; inset: 0; background: var(--black); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .auth-form { width: 350px; display: flex; flex-direction: column; gap: 15px; }
+        .t4-input { background: transparent; border: 2px solid var(--white); border-radius: 50px; padding: 12px 25px; color: white; font-family: inherit; text-align: center; }
+        .t4-submit { background: var(--red); border: none; padding: 15px; border-radius: 50px; color: white; font-family: inherit; cursor: pointer; transition: 0.3s; }
+        .t4-submit:hover { transform: scale(1.05); background: white; color: red; }
 
-        /* MAIN APP */
-        .app-grid { display: grid; grid-template-columns: 300px 1fr; height: 100vh; }
-        .sidebar { border-right: 1px solid #222; display: flex; flex-direction: column; }
-        .sidebar-header { padding: 20px; font-size: 1.5rem; color: var(--red); border-bottom: 1px solid #222; }
+        /* --- MAIN APP --- */
+        .app-container { display: grid; grid-template-columns: 350px 1fr; height: 100vh; display: none; }
         
-        .chat-area { display: flex; flex-direction: column; background: #050505; }
-        .msg-container { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-        
-        /* INPUT AREA (As per your request) */
-        .input-wrap { padding: 20px; display: flex; align-items: center; gap: 10px; }
-        .pill-input { 
-            flex: 1; background: var(--black); border: 2px solid var(--white); 
-            border-radius: 50px; padding: 12px 25px; color: white; font-family: inherit;
-        }
-        .clip { 
-            width: 40px; height: 40px; border: 2px solid var(--white); 
-            border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;
-        }
+        /* Sidebar */
+        .sidebar { background: var(--black); border-right: 2px solid #222; display: flex; flex-direction: column; }
+        .sidebar-header { padding: 25px; font-size: 1.8rem; color: var(--red); display: flex; justify-content: space-between; align-items: center; }
+        .chat-list { flex: 1; overflow-y: auto; }
+        .chat-item { padding: 20px; border-bottom: 1px solid #111; cursor: pointer; display: flex; align-items: center; gap: 15px; }
+        .chat-item:hover { background: #050505; border-left: 4px solid var(--red); }
+        .add-btn { font-size: 3rem; text-align: center; cursor: pointer; padding: 10px; border-top: 1px solid #111; color: var(--red); }
 
-        .msg { padding: 10px 20px; border-radius: 20px; max-width: 70%; font-size: 0.9rem; }
-        .msg.me { align-self: flex-end; background: var(--red); color: white; }
-        .msg.other { align-self: flex-start; background: #222; }
+        /* Chat Window */
+        .main-chat { display: flex; flex-direction: column; background: radial-gradient(circle at center, #0a0a0a 0%, #000 100%); }
+        .chat-header { padding: 15px 25px; border-bottom: 1px solid #222; display: flex; justify-content: space-between; align-items: center; }
+        .messages { flex: 1; padding: 25px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
         
-        .switch-auth { font-size: 0.7rem; text-align: center; cursor: pointer; text-decoration: underline; }
+        /* Messages Style */
+        .msg { max-width: 70%; padding: 12px 20px; border-radius: 20px; font-size: 0.9rem; line-height: 1.4; border: 1px solid rgba(255,255,255,0.1); }
+        .msg.me { align-self: flex-end; background: var(--red); color: white; border-bottom-right-radius: 2px; }
+        .msg.other { align-self: flex-start; background: var(--grey); border-bottom-left-radius: 2px; }
+
+        /* Input Area (Your Design) */
+        .input-bar { padding: 25px; display: flex; align-items: center; gap: 15px; }
+        .pill-wrap { flex: 1; background: var(--black); border: 2px solid var(--white); border-radius: 50px; padding: 10px 25px; display: flex; align-items: center; }
+        .pill-wrap input { flex: 1; background: transparent; border: none; color: white; font-family: inherit; font-size: 1rem; }
+        .icon-btn { width: 45px; height: 45px; border: 2px solid var(--white); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.2rem; transition: 0.3s; }
+        .icon-btn:hover { background: var(--white); color: var(--black); }
+
+        /* Video Call */
+        #video-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 3000; display: none; flex-direction: column; align-items: center; justify-content: center; }
+        video { width: 90%; max-width: 700px; border: 3px solid var(--red); border-radius: 10px; }
     </style>
 </head>
 <body>
 
 <div id="auth-page">
-    <h1 style="color: var(--red); margin-bottom: 30px;">T4 LOGIN</h1>
-    <div class="auth-form" id="login-form">
+    <h1 style="color: var(--red); font-size: 4rem; margin: 0;">T4</h1>
+    <p style="margin-bottom: 30px; letter-spacing: 5px;">ULTIMATE</p>
+    <div class="auth-form">
         <input type="email" id="email" class="t4-input" placeholder="EMAIL">
         <input type="password" id="pass" class="t4-input" placeholder="PASSWORD">
-        <button class="t4-submit" onclick="performAuth('login')">ВОЙТИ</button>
-        <p class="switch-auth" onclick="toggleAuth()">Нет аккаунта? Регистрация</p>
+        <button class="t4-submit" onclick="auth('login')">ВОЙТИ</button>
+        <button class="t4-submit" style="background:none; border: 2px solid var(--red)" onclick="auth('reg')">РЕГИСТРАЦИЯ</button>
     </div>
 </div>
 
-<div class="app-grid" id="main-app" style="display: none;">
+<div class="app-container" id="t4-app">
     <div class="sidebar">
-        <div class="sidebar-header">T4 CHATS</div>
-        <div id="user-list" style="padding: 20px;">
-            <div style="color: var(--red)">● ONLINE</div>
+        <div class="sidebar-header">
+            T4 CHATS <span id="my-peer-id" style="font-size: 0.6rem; color: var(--red)">ID: ...</span>
         </div>
-        <div style="margin-top: auto; padding: 20px; font-size: 2rem; border-top: 1px solid #222; cursor: pointer;">+</div>
+        <div class="chat-list" id="clist">
+            <div class="chat-item" onclick="openSaved()">⭐ ИЗБРАННОЕ (ОБЛАКО)</div>
+        </div>
+        <div class="add-btn" onclick="searchUser()">+</div>
     </div>
 
-    <div class="chat-area">
-        <div class="msg-container" id="messages"></div>
-        <div class="input-wrap">
-            <input type="text" id="msg-input" class="pill-input" placeholder="Введите сообщение..." onkeydown="if(event.key==='Enter') send()">
-            <div class="clip">📎</div>
+    <div class="main-chat">
+        <div class="chat-header">
+            <div id="active-chat-name">ВЫБЕРИТЕ ЧАТ</div>
+            <div style="display: flex; gap: 10px;">
+                <button class="icon-btn" style="border-color: var(--red); color: var(--red);" onclick="makeCall()">📞</button>
+            </div>
+        </div>
+        <div class="messages" id="msg-box"></div>
+        <div class="input-bar">
+            <div class="icon-btn">📎</div>
+            <div class="pill-wrap">
+                <input type="text" id="m-in" placeholder="Введите сообщение..." onkeydown="if(event.key==='Enter') sendMsg()">
+            </div>
+            <button class="icon-btn" style="background: var(--red); border: none; color: white;" onclick="sendMsg()">></button>
         </div>
     </div>
 </div>
+
+<div id="video-modal">
+    <h2 id="call-status">ЗВОНОК...</h2>
+    <video id="remoteVideo" autoplay playsinline></video>
+    <button class="t4-submit" style="margin-top: 20px; width: 200px;" onclick="endCall()">ЗАВЕРШИТЬ</button>
+</div>
+
+
 
 <script>
-    // --- КОНФИГ ТВОЕГО ГИТХАБА (ЗАПОЛНИ ОДИН РАЗ) ---
-    const GIST_KEY = "ТВОЙ_КЛЮЧ_ОТ_ГИСТА"; 
-    const GIST_ID = "ID_ТВОЕГО_ГИСТА"; // Тот, где лежит gist.json
+    // --- ТВОИ НАСТРОЙКИ ---
+    const CONFIG = {
+        KEY: "ТВОЙ_GITHUB_TOKEN", 
+        GIST: "ID_ТВОЕГО_ГИСТА",
+        FILENAME: "gist.json"
+    };
 
-    let currentUser = null;
+    let currentUser = "";
+    let peer;
 
-    // Переключение между Входом и Регистрацией
-    function toggleAuth() {
-        const title = document.querySelector('#auth-page h1');
-        const btn = document.querySelector('.t4-submit');
-        const switcher = document.querySelector('.switch-auth');
-        
-        if(title.innerText === "T4 LOGIN") {
-            title.innerText = "T4 REGISTER";
-            btn.innerText = "СОЗДАТЬ";
-            switcher.innerText = "Уже есть аккаунт? Войти";
-        } else {
-            title.innerText = "T4 LOGIN";
-            btn.innerText = "ВОЙТИ";
-            switcher.innerText = "Нет аккаунта? Регистрация";
-        }
-    }
-
-    async function performAuth(type) {
-        const email = document.getElementById('email').value;
+    // 1. АВТОРИЗАЦИЯ
+    function auth(mode) {
+        const mail = document.getElementById('email').value;
         const pass = document.getElementById('pass').value;
+        if(!mail || !pass) return alert("Азер, заполни поля!");
 
-        if(!email || !pass) return alert("Заполни поля!");
-
-        // Имитация базы через Gist (для простоты примера храним юзеров в отдельном файле или в том же)
-        // В реальном T4 здесь будет fetch к твоему users.json на GitHub
-        
-        currentUser = email.split('@')[0].toUpperCase();
+        currentUser = mail.split('@')[0].toUpperCase();
         document.getElementById('auth-page').style.display = 'none';
-        document.getElementById('main-app').style.display = 'grid';
+        document.getElementById('t4-app').style.display = 'grid';
         
-        startChat();
+        initNetwork();
+        sync();
+        setInterval(sync, 4000);
     }
 
-    async function startChat() {
-        load();
-        setInterval(load, 4000);
+    // 2. СЕТЬ (Звонки и сообщения)
+    function initNetwork() {
+        peer = new Peer('T4-' + currentUser);
+        peer.on('open', id => { document.getElementById('my-peer-id').innerText = "ID: " + id; });
+        
+        peer.on('call', call => {
+            document.getElementById('video-modal').style.display = 'flex';
+            navigator.mediaDevices.getUserMedia({video: true, audio: true}).then(stream => {
+                call.answer(stream);
+                call.on('stream', remStream => { document.getElementById('remoteVideo').srcObject = remStream; });
+            });
+        });
     }
 
-    async function load() {
+    // 3. ОБЛАЧНАЯ СИНХРОНИЗАЦИЯ (Gist)
+    async function sync() {
         try {
-            const res = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
-                headers: { 'Authorization': `token ${GIST_KEY}` }
+            const res = await fetch(`https://api.github.com/gists/${CONFIG.GIST}`, {
+                headers: { 'Authorization': `token ${CONFIG.KEY}` }
             });
             const data = await res.json();
-            const history = JSON.parse(data.files["gist.json"].content);
+            const history = JSON.parse(data.files[CONFIG.FILENAME].content);
             render(history);
-        } catch(e) { console.log("Ошибка загрузки"); }
+        } catch(e) { console.log("SYNC ERROR"); }
     }
 
     function render(data) {
-        const box = document.getElementById('messages');
+        const box = document.getElementById('msg-box');
         box.innerHTML = "";
         data.forEach(m => {
             const div = document.createElement('div');
@@ -148,16 +164,44 @@
         box.scrollTop = box.scrollHeight;
     }
 
-    async function send() {
-        const input = document.getElementById('msg-input');
+    // 4. ОТПРАВКА
+    async function sendMsg() {
+        const input = document.getElementById('m-in');
         const text = input.value;
         if(!text) return;
 
-        // Логика PATCH запроса к Gist (как в предыдущих шагах)
-        // ... (код отправки)
-        
+        const res = await fetch(`https://api.github.com/gists/${CONFIG.GIST}`, {
+            headers: { 'Authorization': `token ${CONFIG.KEY}` }
+        });
+        const data = await res.json();
+        let history = JSON.parse(data.files[CONFIG.FILENAME].content);
+
+        history.push({ u: currentUser, t: text, ts: Date.now() });
+
+        await fetch(`https://api.github.com/gists/${CONFIG.GIST}`, {
+            method: 'PATCH',
+            headers: { 'Authorization': `token ${CONFIG.KEY}` },
+            body: JSON.stringify({ files: { [CONFIG.FILENAME]: { content: JSON.stringify(history) } } })
+        });
+
         input.value = "";
+        sync();
     }
+
+    // 5. ЗВОНКИ
+    function makeCall() {
+        const target = prompt("ВВЕДИТЕ USERNAME СОБЕСЕДНИКА:");
+        if(!target) return;
+        
+        document.getElementById('video-modal').style.display = 'flex';
+        navigator.mediaDevices.getUserMedia({video: true, audio: true}).then(stream => {
+            const call = peer.call('T4-' + target.toUpperCase(), stream);
+            call.on('stream', remStream => { document.getElementById('remoteVideo').srcObject = remStream; });
+        });
+    }
+
+    function endCall() { location.reload(); }
+
 </script>
 </body>
 </html>
